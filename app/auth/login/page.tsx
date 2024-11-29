@@ -14,22 +14,24 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/lib/services/auth';
+import { useAuth } from '@/lib/auth';
 import { useToast } from '@/components/ui/use-toast';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-export default function LoginPage() {
+function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { signIn } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,7 +45,12 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signIn(values.email, values.password);
+      toast({
+        title: 'Success',
+        description: 'You have been logged in successfully.',
+      });
       router.push('/dashboard');
+      router.refresh();
     } catch (error: any) {
       toast({
         title: 'Login failed',
@@ -56,10 +63,13 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4 pt-6">
+    <Card className="w-full max-w-md">
+      <CardHeader>
+        <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="email"
@@ -70,7 +80,7 @@ export default function LoginPage() {
                     <Input
                       placeholder="Enter your email"
                       type="email"
-                      autoComplete="email"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -88,7 +98,7 @@ export default function LoginPage() {
                     <Input
                       placeholder="Enter your password"
                       type="password"
-                      autoComplete="current-password"
+                      disabled={isLoading}
                       {...field}
                     />
                   </FormControl>
@@ -96,26 +106,34 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
-            <div className="text-sm text-center space-x-1">
-              <span className="text-muted-foreground">
-                Don&apos;t have an account?
-              </span>
-              <Link
-                href="/auth/register"
-                className="text-primary hover:underline font-medium"
-              >
-                Sign up
-              </Link>
-            </div>
-          </CardFooter>
-        </form>
-      </Form>
+          </form>
+        </Form>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-4">
+        <div className="text-sm text-muted-foreground text-center">
+          Don't have an account?{' '}
+          <Link
+            href="/auth/register"
+            className="text-primary hover:underline font-medium"
+          >
+            Sign up
+          </Link>
+        </div>
+      </CardFooter>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="container flex items-center justify-center min-h-screen py-8">
+      <ErrorBoundary>
+        <LoginForm />
+      </ErrorBoundary>
+    </div>
   );
 }
